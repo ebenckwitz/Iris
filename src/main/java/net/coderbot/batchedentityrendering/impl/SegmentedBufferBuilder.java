@@ -30,12 +30,11 @@ public class SegmentedBufferBuilder implements MultiBufferSource, MemoryTracking
     public VertexConsumer getBuffer(RenderType renderType) {
         if (!Objects.equals(currentType, renderType)) {
             if (currentType != null) {
-                if (shouldSortOnUpload(currentType)) {
-                    buffer.sortQuads(0, 0, 0);
-                }
-
                 buffer.end();
                 usedTypes.add(currentType);
+            }
+            if (shouldSortOnUpload(currentType)) { //*DESIGN CHANGE* put if statement right here 
+                buffer.sortQuads(0, 0, 0);
             }
 
             buffer.begin(renderType.mode(), renderType.format());
@@ -55,36 +54,40 @@ public class SegmentedBufferBuilder implements MultiBufferSource, MemoryTracking
     }
 
     public List<BufferSegment> getSegments() {
-        if (currentType == null) {
-            return Collections.emptyList();
+    	final List<BufferSegment> segments = new ArrayList<>(usedTypes.size()); //*CODE STYLE* made list final
+    	 
+        if (currentType == null) { //*CODE STYLE* made segments equal previous return value, and put everything else in the else stmt 
+            segments = Collections.emptyList();
+        } else {
+        	usedTypes.add(currentType);
+
+        	if (shouldSortOnUpload(currentType)) {
+        		buffer.sortQuads(0, 0, 0);
+        	}
+
+        	buffer.end();
+        	currentType = null;
+
+       
+
+        	for (RenderType type : usedTypes) {
+        		Pair<BufferBuilder.DrawState, ByteBuffer> pair = buffer.popNextBuffer();
+
+        		BufferBuilder.DrawState drawState; //*DESIGN* I separated the variable by creating them first
+        		ByteBuffer slice; 
+        		drawState = pair.getFirst();
+        		slice = pair.getSecond();
+
+        		segments.add(new BufferSegment(slice, drawState, type));
+        	}
+
+        	usedTypes.clear();
         }
-
-        usedTypes.add(currentType);
-
-        if (shouldSortOnUpload(currentType)) {
-            buffer.sortQuads(0, 0, 0);
-        }
-
-        buffer.end();
-        currentType = null;
-
-        List<BufferSegment> segments = new ArrayList<>(usedTypes.size());
-
-        for (RenderType type : usedTypes) {
-            Pair<BufferBuilder.DrawState, ByteBuffer> pair = buffer.popNextBuffer();
-
-            BufferBuilder.DrawState drawState = pair.getFirst();
-            ByteBuffer slice = pair.getSecond();
-
-            segments.add(new BufferSegment(slice, drawState, type));
-        }
-
-        usedTypes.clear();
 
         return segments;
     }
 
-    private static boolean shouldSortOnUpload(RenderType type) {
+    private static boolean shouldSortOnUpload(final RenderType type) { //*CODE STYLE* made argument final
         return ((RenderTypeAccessor) type).shouldSortOnUpload();
     }
 
