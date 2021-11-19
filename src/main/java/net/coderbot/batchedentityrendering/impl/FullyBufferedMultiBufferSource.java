@@ -33,7 +33,7 @@ public class FullyBufferedMultiBufferSource extends MultiBufferSource.BufferSour
 
 	private final BufferSegmentRenderer segmentRenderer;
 	private final UnflushableWrapper unflushableWrapper;
-	private final List<Function<RenderType, RenderType>> wrappingFunctionStack;
+	private final List<Function<RenderType, RenderType>> wrapFuncStack; //*CODE STYLE* made variable name shorter
 	private Function<RenderType, RenderType> wrappingFunction = null;
 
 	public FullyBufferedMultiBufferSource() {
@@ -89,7 +89,9 @@ public class FullyBufferedMultiBufferSource extends MultiBufferSource.BufferSour
 
 	@Override
 	public void endBatch() {
-		ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+		ProfilerFiller profiler; //*DESIGN* separating the variable
+		profiler = Minecraft.getInstance();
+		profiler.getProfiler();
 
 		profiler.push("collect");
 
@@ -105,7 +107,7 @@ public class FullyBufferedMultiBufferSource extends MultiBufferSource.BufferSour
 
 		profiler.popPush("resolve ordering");
 
-		Iterable<RenderType> renderOrder = renderOrderManager.getRenderOrder();
+		final Iterable<RenderType> renderOrder = renderOrderManager.getRenderOrder(); //*CODE STYLE* made variable final
 
 		profiler.popPush("draw buffers");
 
