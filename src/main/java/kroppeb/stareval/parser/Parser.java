@@ -54,7 +54,7 @@ import java.util.List;
  *
  * @author Kroppeb
  */
-public class Parser {
+public class Parser { // NOPMD by ebenc on 11/18/21, 8:18 PM
 	private final List<Element> stack = new ArrayList<>();
 
 	Parser() {
@@ -274,40 +274,43 @@ public class Parser {
 		this.push(new UnaryOperatorToken(unaryOp));
 	}
 
-	Expression getFinal(int endIndex) throws ParseException {
-		if (!this.stack.isEmpty()) {
-			if (this.peek() instanceof Expression) {
-				Expression result = this.expressionReducePop();
-
-				if (this.stack.isEmpty()) {
-					return result;
-				}
-
-				if (this.peek() instanceof UnfinishedArgsExpression) {
-					throw new MissingTokenException("Expected a closing bracket", endIndex);
-				} else {
-					throw new UnexpectedTokenException(
-							"The stack of tokens isn't empty at the end of the expression: " + this.stack +
-									" top: " + result, endIndex);
-				}
-			} else {
-				Element top = this.peek();
-				if (top instanceof UnfinishedArgsExpression) {
-					throw new MissingTokenException("Expected a closing bracket", endIndex);
-				} else if (top instanceof PriorityOperatorElement) {
-					throw new MissingTokenException(
-							"Expected a identifier, constant or subexpression on the right side of the operator",
-							endIndex);
-				} else {
-					throw new UnexpectedTokenException(
-							"The stack of tokens contains an unexpected token at the top: " + this.stack,
-							endIndex);
-				}
+	Expression getFinal(int endIndex) throws ParseException { //*DESIGN* separated if statement for complexity
+		if (!this.stack.isEmpty() && (this.peek() instanceof Expression)) {
+			Expression result = this.expressionReducePop();
+			if (this.stack.isEmpty()) {
+				return result;
 			}
-		} else {
-			throw new MissingTokenException("The input seems to be empty", endIndex);
-		}
+			if (this.peek() instanceof UnfinishedArgsExpression) {
+				throw new MissingTokenException("Expected a closing bracket", endIndex);
+			} else {
+				throw new UnexpectedTokenException(
+						"The stack of tokens isn't empty at the end of the expression: " + this.stack +
+								" top: " + result, endIndex);
+			}
+		} 
+		Expression other = getFinal2(endIndex);
+		return other;
 	}
+	
+	Expression getFinal2(int endIndex) throws ParseException { // New method to fix getFinal complexity
+		if (!this.stack.isEmpty()) {
+			Element top = this.peek();
+			if (top instanceof UnfinishedArgsExpression) {
+				throw new MissingTokenException("Expected a closing bracket", endIndex);
+			} else if (top instanceof PriorityOperatorElement) {
+				throw new MissingTokenException(
+						"Expected a identifier, constant or subexpression on the right side of the operator",
+						endIndex);
+			} else {
+				throw new UnexpectedTokenException(
+						"The stack of tokens contains an unexpected token at the top: " + this.stack,
+						endIndex);
+			}
+		}
+		throw new MissingTokenException("The input seems to be empty", endIndex);
+		
+	}
+
 
 	public static Expression parse(String input, ParserOptions options) throws ParseException {
 		return Tokenizer.parse(input, options);
